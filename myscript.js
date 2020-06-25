@@ -1,54 +1,40 @@
-/** @license
- * DHTML Snowstorm! JavaScript-based snow for web pages
- * Making it snow on the internets since 2003. You're welcome.
- * -----------------------------------------------------------
- * Version 1.44.20131208 (Previous rev: 1.44.20131125)
- * Copyright (c) 2007, Scott Schiller. All rights reserved.
- * Code provided under the BSD License
- * http://schillmania.com/projects/snowstorm/license.txt
- */
 
-/*jslint nomen: true, plusplus: true, sloppy: true, vars: true, white: true */
-/*global window, document, navigator, clearInterval, setInterval */
 var snowStorm = (function(window, document) {
 
-  // --- common properties ---
+  
+  this.autoStart = true;          
+  this.excludeMobile = true;     
+  this.flakesMax = 128;           
+  this.flakesMaxActive = 64;      
+  this.animationInterval = 50;    
+  this.useGPU = true;             
+  this.className = null;          
+  this.excludeMobile = true;     
+  this.flakeBottom = null;        
+  this.followMouse = false;        
+  this.snowColor = '#fff';        
+  this.snowCharacter = '&bull;';  
+  this.snowStick = true;          
+  this.targetElement = null;      
+  this.useMeltEffect = true;       
+  this.useTwinkleEffect = false;  
+  this.usePositionFixed = false;  
+  this.usePixelPosition = false;  
+ 
 
-  this.autoStart = true;          // Whether the snow should start automatically or not.
-  this.excludeMobile = true;      // Snow is likely to be bad news for mobile phones' CPUs (and batteries.) Enable at your own risk.
-  this.flakesMax = 128;           // Limit total amount of snow made (falling + sticking)
-  this.flakesMaxActive = 64;      // Limit amount of snow falling at once (less = lower CPU use)
-  this.animationInterval = 50;    // Theoretical "miliseconds per frame" measurement. 20 = fast + smooth, but high CPU use. 50 = more conservative, but slower
-  this.useGPU = true;             // Enable transform-based hardware acceleration, reduce CPU load.
-  this.className = null;          // CSS class name for further customization on snow elements
-  this.excludeMobile = true;      // Snow is likely to be bad news for mobile phones' CPUs (and batteries.) By default, be nice.
-  this.flakeBottom = null;        // Integer for Y axis snow limit, 0 or null for "full-screen" snow effect
-  this.followMouse = false;        // Snow movement can respond to the user's mouse
-  this.snowColor = '#fff';        // Don't eat (or use?) yellow snow.
-  this.snowCharacter = '&bull;';  // &bull; = bullet, &middot; is square on some systems etc.
-  this.snowStick = true;          // Whether or not snow should "stick" at the bottom. When off, will never collect.
-  this.targetElement = null;      // element which snow will be appended to (null = document.body) - can be an element ID eg. 'myDiv', or a DOM node reference
-  this.useMeltEffect = true;      // When recycling fallen snow (or rarely, when falling), have it "melt" and fade out if browser supports it
-  this.useTwinkleEffect = false;  // Allow snow to randomly "flicker" in and out of view while falling
-  this.usePositionFixed = false;  // true = snow does not shift vertically when scrolling. May increase CPU load, disabled by default - if enabled, used only where supported
-  this.usePixelPosition = false;  // Whether to use pixel values for snow top/left vs. percentages. Auto-enabled if body is position:relative or targetElement is specified.
+  this.freezeOnBlur = true;       
+  this.flakeLeftOffset = 0;     
+  this.flakeRightOffset = 0;      
+  this.flakeWidth = 8;           
+  this.flakeHeight = 8;          
+  this.vMaxX = 5;                 
+  this.vMaxY = 4;                 
+  this.zIndex = 0;                
 
-  // --- less-used bits ---
-
-  this.freezeOnBlur = true;       // Only snow when the window is in focus (foreground.) Saves CPU.
-  this.flakeLeftOffset = 0;       // Left margin/gutter space on edge of container (eg. browser window.) Bump up these values if seeing horizontal scrollbars.
-  this.flakeRightOffset = 0;      // Right margin/gutter space on edge of container
-  this.flakeWidth = 8;            // Max pixel width reserved for snow element
-  this.flakeHeight = 8;           // Max pixel height reserved for snow element
-  this.vMaxX = 5;                 // Maximum X velocity range for snow
-  this.vMaxY = 4;                 // Maximum Y velocity range for snow
-  this.zIndex = 0;                // CSS stacking order applied to each snowflake
-
-  // --- "No user-serviceable parts inside" past this point, yadda yadda ---
-
+  
   var storm = this,
   features,
-  // UA sniffing and backCompat rendering mode checks for fixed position, etc.
+  
   isIE = navigator.userAgent.match(/msie/i),
   isIE6 = navigator.userAgent.match(/msie 6/i),
   isMobile = navigator.userAgent.match(/mobile|opera m(ob|in)/i),
@@ -75,11 +61,6 @@ var snowStorm = (function(window, document) {
 
     var getAnimationFrame;
 
-    /**
-     * hat tip: paul irish
-     * http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-     * https://gist.github.com/838785
-     */
 
     function timeoutShim(callback) {
       window.setTimeout(callback, 1000/(storm.animationInterval || 20));
@@ -92,7 +73,7 @@ var snowStorm = (function(window, document) {
         window.msRequestAnimationFrame ||
         timeoutShim);
 
-    // apply to window, avoid "illegal invocation" errors in Chrome
+   
     getAnimationFrame = _animationFrame ? function() {
       return _animationFrame.apply(window, arguments);
     } : null;
@@ -103,13 +84,12 @@ var snowStorm = (function(window, document) {
 
     function has(prop) {
 
-      // test for feature support
       var result = testDiv.style[prop];
       return (result !== undefined ? prop : null);
 
     }
 
-    // note local scope.
+   
     var localFeatures = {
 
       transform: {
@@ -118,7 +98,7 @@ var snowStorm = (function(window, document) {
         opera: has('OTransform'),
         webkit: has('webkitTransform'),
         w3: has('transform'),
-        prop: null // the normalized property value
+        prop: null 
       },
 
       getAnimationFrame: getAnimationFrame
@@ -160,20 +140,20 @@ var snowStorm = (function(window, document) {
     } else if (noFixed) {
 
       o.style.right = (100-(x/screenX*100)) + '%';
-      // avoid creating vertical scrollbars
+      
       o.style.top = (Math.min(y, docHeight-storm.flakeHeight)) + 'px';
 
     } else {
 
       if (!storm.flakeBottom) {
 
-        // if not using a fixed bottom coordinate...
+        
         o.style.right = (100-(x/screenX*100)) + '%';
         o.style.bottom = (100-(y/screenY*100)) + '%';
 
       } else {
 
-        // absolute top.
+        
         o.style.right = (100-(x/screenX*100)) + '%';
         o.style.top = (Math.min(y, docHeight-storm.flakeHeight)) + 'px';
 
@@ -194,9 +174,9 @@ var snowStorm = (function(window, document) {
     function getArgs(oArgs) {
       var args = slice.call(oArgs), len = args.length;
       if (old) {
-        args[1] = 'on' + args[1]; // prefix
+        args[1] = 'on' + args[1];
         if (len > 3) {
-          args.pop(); // no capture
+          args.pop(); 
         }
       } else if (len === 3) {
         args.push(false);
